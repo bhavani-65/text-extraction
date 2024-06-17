@@ -7,15 +7,6 @@ This is a Flask application for extracting information from PDF files based on u
 1. Install dependencies using `pip install -r requirements.txt`.
 2. Run the application using `python main.py`.
 
-## Usage
-
-1. Access the application at [http://localhost:5000](http://localhost:5000).
-2. Enter a keyword in the input field and submit the form to search for information in PDF files.
-
-## License
-
-[Your License Here]
-
 ## OUTPUT IMAGES:
 1.uploading Page
 https://1drv.ms/i/c/96deefaebc2d288a/EdYASSh4OfdHt714G0vwwP8BmaaOBZ9__3Y_swFx8t5ROw?e=v53TrX
@@ -32,3 +23,12 @@ https://1drv.ms/i/c/96deefaebc2d288a/EccWXG_AFb5Noy21BTinkjQBxL5oa-zvCx7Zk3kZniK
 7.vinati.pdf
 https://1drv.ms/i/c/96deefaebc2d288a/EYI9_5g5Xh9HiMXx7-wjuNkBgyNz2XJy1ku118gt0_ghzQ?e=zius9x
 
+
+## Usage
+
+1. Access the application at [http://localhost:5000](http://localhost:5000).
+2. Enter a keyword in the input field and submit the form to search for information in PDF files.
+
+## License
+
+[Your License Here]
