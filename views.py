@@ -1,5 +1,5 @@
 import streamlit as st
-import PyPDF2
+import fitz  # PyMuPDF
 import nltk
 import spacy
 import re
@@ -10,11 +10,10 @@ nltk.download('punkt')
 
 def extract_text_from_pdf(pdf_path):
     text = ""
-    with open(pdf_path, 'rb') as file:
-        reader = PyPDF2.PdfFileReader(file)  # Use PdfFileReader instead of PdfReader
-        for page_num in range(reader.numPages):
-            page = reader.getPage(page_num)
-            text += page.extract_text()
+    with fitz.open(pdf_path) as doc:
+        for page_num in range(len(doc)):
+            page = doc.load_page(page_num)
+            text += page.get_text()
     sentences = nltk.sent_tokenize(text)
     return sentences, text
 
@@ -26,17 +25,24 @@ def find_director_sentences(sentences):
     return director_sentences
 
 def find_person_names(sentences):
-    nlp = spacy.load('en_core_web_sm')
+    nlp = None
+    try:
+        nlp = spacy.load('en_core_web_sm')
+    except Exception as e:
+        st.error(f"Error loading spaCy model: {e}")
+        return []
+
     person_names = set()
     for sentence in sentences:
-        doc = nlp(sentence)
-        for ent in doc.ents:
-            if ent.label_ == 'PERSON':
-                if len(ent.text.split()):
-                    person_names.add(ent.text)
-                else:
-                    if ent.text.istitle():
+        if nlp is not None:
+            doc = nlp(sentence)
+            for ent in doc.ents:
+                if ent.label_ == 'PERSON':
+                    if len(ent.text.split()):
                         person_names.add(ent.text)
+                    else:
+                        if ent.text.istitle():
+                            person_names.add(ent.text)
     return list(person_names)
 
 def clean_director_names(director_names, blacklist):
@@ -104,29 +110,38 @@ if uploaded_file is not None:
     pdf_path = 'uploaded_file.pdf'
     pdf_sentences, text = extract_text_from_pdf(pdf_path)
     director_sentences = find_director_sentences(pdf_sentences)
-    director_names = find_person_names(director_sentences)
+    
+    # Check if director sentences are found
+    if not director_sentences:
+        st.error("No director sentences found in the document.")
+    else:
+        director_names = find_person_names(director_sentences)
+        
+        # Check if person names are found
+        if not director_names:
+            st.error("No person names found in the director sentences.")
+        else:
+            blacklist = [
+                'Chairperson', 'ALM', 'A-44 Hosiery Complex', 'BSEListingCentre Thru',
+                'Asabove', 'Copyto', 'Dhruv M.', 'Sawhney', 'Homai A. Daruwalla',
+                'Memberships/ Chairmanships', 'Noida Rajiv Sawhney', 'Date',
+                'Dhruv M. Sawhney', 'Lagnam', 'Spintex India Ltd.', 'C. Laddha',
+                'Qualifications B.Sc.', 'J. C. Laddha', 'and/or re -enactment(s',
+                'w. e. f.', 'NA Appointment', 'Directorships', 'Bandra Kurla Complex',
+                'Schedule III','Chairperson \nALM', 'A-44 Hosiery Complex', 'BSEListingCentre Thru', 'Asabove\nCopyto',  'Homai A. Daruwalla', 'Memberships/ Chairmanships',
+                'Noida Rajiv Sawhney\nDate','Lagnam \nSpintex India Ltd.', 'Prashant Barve\nDirectorships','Lagnam \nSpintex India Ltd.','Mannepalli Lakshmi Kantam', 'M. Lakshmi','Jeet Singh Bagga',
+                'Nikhil Sawhney','Tarun Sawhney','Dhruv M Sawhney','Dhruv M. \nSawhney','J','Kantam','modification(s','Schedule','RSWM','Bandra','Scrutinizer','Bhasin','Director','Bandra-KurlaComplex','Founder','Mumbai-400013',
+                'Gangotra',
+            ]
+            cleaned_director_names = clean_director_names(director_names, blacklist)
+            director_info = find_din_and_status(cleaned_director_names, director_sentences)
 
-    blacklist = [
-        'Chairperson', 'ALM', 'A-44 Hosiery Complex', 'BSEListingCentre Thru',
-        'Asabove', 'Copyto', 'Dhruv M.', 'Sawhney', 'Homai A. Daruwalla',
-        'Memberships/ Chairmanships', 'Noida Rajiv Sawhney', 'Date',
-        'Dhruv M. Sawhney', 'Lagnam', 'Spintex India Ltd.', 'C. Laddha',
-        'Qualifications B.Sc.', 'J. C. Laddha', 'and/or re -enactment(s',
-        'w. e. f.', 'NA Appointment', 'Directorships', 'Bandra Kurla Complex',
-        'Schedule III','Chairperson \nALM', 'A-44 Hosiery Complex', 'BSEListingCentre Thru', 'Asabove\nCopyto',  'Homai A. Daruwalla', 'Memberships/ Chairmanships',
-        'Noida Rajiv Sawhney\nDate','Lagnam \nSpintex India Ltd.', 'Prashant Barve\nDirectorships','Lagnam \nSpintex India Ltd.','Mannepalli Lakshmi Kantam', 'M. Lakshmi','Jeet Singh Bagga',
-        'Nikhil Sawhney','Tarun Sawhney','Dhruv M Sawhney','Dhruv M. \nSawhney','J','Kantam','modification(s','Schedule','RSWM','Bandra','Scrutinizer','Bhasin','Director','Bandra-KurlaComplex','Founder','Mumbai-400013',
-        'Gangotra',
-    ]
-    cleaned_director_names = clean_director_names(director_names, blacklist)
-    director_info = find_din_and_status(cleaned_director_names, director_sentences)
+            for director, info in director_info.items():
+                if info['Status'] == "Status not specified":
+                    info['Status'] = "Whole-time"
 
-    for director, info in director_info.items():
-        if info['Status'] == "Status not specified":
-            info['Status'] = "Whole-time"
-
-    st.write("### Director Information")
-    for director, info in director_info.items():
-        st.write(f"**{director}**")
-        st.write(f"  - DIN: {info['DIN']}")
-        st.write(f"  - Status: {info['Status']}")
+            st.write("### Director Information")
+            for director, info in director_info.items():
+                st.write(f"**{director}**")
+                st.write(f"  - DIN: {info['DIN']}")
+                st.write(f"  - Status: {info['Status']}")
