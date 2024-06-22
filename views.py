@@ -11,9 +11,9 @@ nltk.download('punkt')
 def extract_text_from_pdf(pdf_path):
     text = ""
     with open(pdf_path, 'rb') as file:
-        reader = PyPDF2.PdfReader(file)
-        for page_num in range(len(reader.pages)):
-            page = reader.pages[page_num]
+        reader = PyPDF2.PdfFileReader(file)  # Use PdfFileReader instead of PdfReader
+        for page_num in range(reader.numPages):
+            page = reader.getPage(page_num)
             text += page.extract_text()
     sentences = nltk.sent_tokenize(text)
     return sentences, text
@@ -98,33 +98,33 @@ st.title('Director Information Extractor')
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file is not None:
-    pdf_path = 'uploaded_file.pdf'
-    with open(pdf_path, 'wb') as file:
+    with open('uploaded_file.pdf', 'wb') as file:
         file.write(uploaded_file.read())
-    
+
+    pdf_path = 'uploaded_file.pdf'
     pdf_sentences, text = extract_text_from_pdf(pdf_path)
     director_sentences = find_director_sentences(pdf_sentences)
     director_names = find_person_names(director_sentences)
-    
+
     blacklist = [
-        'Chairperson', 'ALM', 'A-44 Hosiery Complex', 'BSEListingCentre Thru', 
-        'Asabove', 'Copyto', 'Dhruv M.', 'Sawhney', 'Homai A. Daruwalla', 
-        'Memberships/ Chairmanships', 'Noida Rajiv Sawhney', 'Date', 
-        'Dhruv M. Sawhney', 'Lagnam', 'Spintex India Ltd.', 'C. Laddha', 
-        'Qualifications B.Sc.', 'J. C. Laddha', 'and/or re -enactment(s', 
-        'w. e. f.', 'NA Appointment', 'Directorships', 'Bandra Kurla Complex', 
+        'Chairperson', 'ALM', 'A-44 Hosiery Complex', 'BSEListingCentre Thru',
+        'Asabove', 'Copyto', 'Dhruv M.', 'Sawhney', 'Homai A. Daruwalla',
+        'Memberships/ Chairmanships', 'Noida Rajiv Sawhney', 'Date',
+        'Dhruv M. Sawhney', 'Lagnam', 'Spintex India Ltd.', 'C. Laddha',
+        'Qualifications B.Sc.', 'J. C. Laddha', 'and/or re -enactment(s',
+        'w. e. f.', 'NA Appointment', 'Directorships', 'Bandra Kurla Complex',
         'Schedule III','Chairperson \nALM', 'A-44 Hosiery Complex', 'BSEListingCentre Thru', 'Asabove\nCopyto',  'Homai A. Daruwalla', 'Memberships/ Chairmanships',
         'Noida Rajiv Sawhney\nDate','Lagnam \nSpintex India Ltd.', 'Prashant Barve\nDirectorships','Lagnam \nSpintex India Ltd.','Mannepalli Lakshmi Kantam', 'M. Lakshmi','Jeet Singh Bagga',
         'Nikhil Sawhney','Tarun Sawhney','Dhruv M Sawhney','Dhruv M. \nSawhney','J','Kantam','modification(s','Schedule','RSWM','Bandra','Scrutinizer','Bhasin','Director','Bandra-KurlaComplex','Founder','Mumbai-400013',
-        'Gangotra',            
-    ] 
+        'Gangotra',
+    ]
     cleaned_director_names = clean_director_names(director_names, blacklist)
     director_info = find_din_and_status(cleaned_director_names, director_sentences)
-    
+
     for director, info in director_info.items():
         if info['Status'] == "Status not specified":
             info['Status'] = "Whole-time"
-    
+
     st.write("### Director Information")
     for director, info in director_info.items():
         st.write(f"**{director}**")
