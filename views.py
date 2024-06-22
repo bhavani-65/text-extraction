@@ -5,6 +5,9 @@ import spacy
 import re
 import os
 
+# Ensure that nltk data is downloaded
+nltk.download('punkt')
+
 def extract_text_from_pdf(pdf_path):
     text = ""
     with open(pdf_path, 'rb') as file:
